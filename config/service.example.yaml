@@ -5,7 +5,8 @@ fetch:
   user_agent: "Mozilla/5.0 (compatible; bili-subtitle-service/0.1; +https://github.com/Toukou-Yuu/bili-subtitle-service)"
   proxy: null
   # Optional. Prefer BILI_SUBTITLE_COOKIE_FILE for real deployments so login cookies
-  # are mounted as secrets and never committed.
+  # are mounted as secrets and never committed. The file may contain either a
+  # full Cookie header or only the raw SESSDATA value.
   cookie_file: null
 
 summary:

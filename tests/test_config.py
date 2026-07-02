@@ -52,3 +52,21 @@ def test_blank_proxy_environment_override_is_ignored(monkeypatch) -> None:
     config = AppConfig.from_env()
 
     assert config.fetch.proxy is None
+
+
+def test_raw_cookie_file_value_is_treated_as_sessdata(monkeypatch, tmp_path: Path) -> None:
+    cookie_file = tmp_path / "bili-cookie.txt"
+    cookie_file.write_text("raw-sessdata-value\n", encoding="utf-8")
+    monkeypatch.setenv("BILI_SUBTITLE_COOKIE_FILE", str(cookie_file))
+
+    config = AppConfig.from_env()
+
+    assert config.fetch.cookie == "SESSDATA=raw-sessdata-value"
+
+
+def test_raw_cookie_environment_value_is_treated_as_sessdata(monkeypatch) -> None:
+    monkeypatch.setenv("BILI_SUBTITLE_COOKIE", "raw-sessdata-value")
+
+    config = AppConfig.from_env()
+
+    assert config.fetch.cookie == "SESSDATA=raw-sessdata-value"

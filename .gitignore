@@ -6,5 +6,8 @@ __pycache__/
 .env
 .env.*
 !.env.example
+config/service.yaml
+config/*cookie*
+config/*.secret
 *.pyc
 .DS_Store

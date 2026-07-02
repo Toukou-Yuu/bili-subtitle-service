@@ -38,7 +38,7 @@ Environment variables override the config file:
 - `BILI_SUBTITLE_TIMEOUT_SECONDS`
 - `BILI_SUBTITLE_USER_AGENT`
 - `BILI_SUBTITLE_PROXY`
-- `BILI_SUBTITLE_COOKIE_FILE` or `BILI_SUBTITLE_COOKIE` for videos whose subtitle list is only visible in a logged-in Bilibili browser session
+- `BILI_SUBTITLE_COOKIE_FILE` or `BILI_SUBTITLE_COOKIE` for videos whose subtitle list is only visible in a logged-in Bilibili browser session. Values may be a full Cookie header or only the raw `SESSDATA` value; bare values are normalized to `SESSDATA=...`.
 - `BILI_SUBTITLE_SUMMARY_MODEL`
 - `BILI_SUBTITLE_SUMMARY_REASONING_EFFORT`
 - `BILI_SUBTITLE_LOG_LEVEL`

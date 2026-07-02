@@ -9,6 +9,33 @@ import yaml
 from pydantic import BaseModel, Field, field_validator
 
 
+def normalize_cookie_header(value: str | None) -> str | None:
+    """Normalize Cookie config without requiring users to paste a full header.
+
+    Browser exports usually contain a complete Cookie header such as
+    ``SESSDATA=...; bili_jct=...``. Mobile/chat workflows often only have the
+    SESSDATA value. Treat a bare value as SESSDATA while preserving complete
+    cookie headers unchanged.
+    """
+    if value is None:
+        return None
+
+    stripped = value.strip()
+    if not stripped:
+        return None
+
+    if stripped.lower().startswith("cookie:"):
+        stripped = stripped.split(":", 1)[1].strip()
+
+    if "\n" in stripped or "\r" in stripped:
+        parts = [part.strip().rstrip(";") for part in stripped.splitlines() if part.strip()]
+        stripped = "; ".join(parts)
+
+    if "=" not in stripped:
+        return f"SESSDATA={stripped}"
+    return stripped
+
+
 class FetchConfig(BaseModel):
     timeout_seconds: float = Field(default=15.0, gt=0)
     user_agent: str = (
@@ -19,11 +46,18 @@ class FetchConfig(BaseModel):
     cookie: str | None = None
     cookie_file: Path | None = None
 
-    @field_validator("proxy", "cookie", mode="before")
+    @field_validator("proxy", mode="before")
     @classmethod
-    def blank_string_is_none(cls, value: Any) -> Any:
+    def blank_proxy_is_none(cls, value: Any) -> Any:
         if isinstance(value, str) and not value.strip():
             return None
+        return value
+
+    @field_validator("cookie", mode="before")
+    @classmethod
+    def normalize_cookie(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return normalize_cookie_header(value)
         return value
 
 
@@ -66,8 +100,7 @@ class AppConfig(BaseModel):
             proxy = env["BILI_SUBTITLE_PROXY"].strip()
             fetch_update["proxy"] = proxy or None
         if env.get("BILI_SUBTITLE_COOKIE"):
-            cookie = env["BILI_SUBTITLE_COOKIE"].strip()
-            fetch_update["cookie"] = cookie or None
+            fetch_update["cookie"] = normalize_cookie_header(env["BILI_SUBTITLE_COOKIE"])
         if env.get("BILI_SUBTITLE_COOKIE_FILE"):
             fetch_update["cookie_file"] = Path(env["BILI_SUBTITLE_COOKIE_FILE"])
         if env.get("BILI_SUBTITLE_SUMMARY_MODEL"):
@@ -91,5 +124,5 @@ class AppConfig(BaseModel):
             raise FileNotFoundError(
                 f"BILI_SUBTITLE_COOKIE_FILE does not exist: {self.fetch.cookie_file}"
             )
-        cookie = self.fetch.cookie_file.read_text(encoding="utf-8").strip()
+        cookie = normalize_cookie_header(self.fetch.cookie_file.read_text(encoding="utf-8"))
         return self.model_copy(update={"fetch": self.fetch.model_copy(update={"cookie": cookie})})
