@@ -14,4 +14,16 @@ summary:
   model: deepseek-v4-flash
   reasoning_effort: high
 
+storage:
+  # Markdown files are the source of truth for persisted video notes.
+  enabled: true
+  library_dir: /data/library
+
+retrieval:
+  # Optional semantic index derived from Markdown notes; not the source of truth.
+  enabled: false
+  base_url: http://retrieval-api:8000/v1
+  collection: bili_video_notes
+  sync_by_default: false
+
 log_level: INFO

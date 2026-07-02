@@ -37,3 +37,30 @@ class ExtractResponse(BaseModel):
     subtitle: SubtitleMetadata
     transcript: Transcript
     warnings: list[str] = Field(default_factory=list)
+
+
+class SaveVideoNoteRequest(BaseModel):
+    url: str = Field(min_length=1)
+    page: int | None = Field(default=None, ge=1)
+    analysis: str = ""
+    categories: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    profile_signals: list[str] = Field(default_factory=list)
+    sync_retrieval: bool | None = None
+
+
+class SaveVideoNoteResponse(BaseModel):
+    ok: bool = True
+    document_id: str
+    markdown_path: str
+    retrieval_synced: bool = False
+    retrieval_collection: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+
+
+class GetVideoNoteResponse(BaseModel):
+    ok: bool = True
+    document_id: str
+    markdown_path: str
+    markdown: str
+    metadata: dict[str, object] = Field(default_factory=dict)

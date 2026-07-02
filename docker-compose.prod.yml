@@ -10,6 +10,7 @@ services:
       BILI_SUBTITLE_CONFIG_FILE: /config/service.yaml
     volumes:
       - ./config/service.example.yaml:/config/service.yaml:ro
+      - ./data:/data
     ports:
       - "127.0.0.1:${BILI_SUBTITLE_HOST_PORT:-8310}:8310"
     healthcheck:
@@ -29,6 +30,7 @@ services:
       BILI_SUBTITLE_CONFIG_FILE: /config/service.yaml
     volumes:
       - ./config/service.example.yaml:/config/service.yaml:ro
+      - ./data:/data
     ports:
       - "127.0.0.1:${BILI_SUBTITLE_MCP_HOST_PORT:-8311}:8311"
     depends_on:

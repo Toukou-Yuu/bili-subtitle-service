@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from bili_subtitle_service.extractor import SubtitleExtractionError, extract_subtitle
+from bili_subtitle_service.models import SaveVideoNoteRequest
+from bili_subtitle_service.notes import get_video_note_response, save_video_note_from_request
 
 ToolResult = dict[str, Any]
 
@@ -45,4 +47,71 @@ async def extract_subtitle_tool(url: str, page: int | None = None) -> ToolResult
         f"Extracted Bilibili subtitle for {result.video.title} P{result.video.page_number}.",
         result.model_dump(mode="json"),
         result.warnings,
+    )
+
+
+async def save_video_note_tool(
+    url: str,
+    analysis: str = "",
+    categories: list[str] | None = None,
+    tags: list[str] | None = None,
+    profile_signals: list[str] | None = None,
+    page: int | None = None,
+    sync_retrieval: bool | None = None,
+) -> ToolResult:
+    try:
+        result = await save_video_note_from_request(
+            SaveVideoNoteRequest(
+                url=url,
+                page=page,
+                analysis=analysis,
+                categories=categories or [],
+                tags=tags or [],
+                profile_signals=profile_signals or [],
+                sync_retrieval=sync_retrieval,
+            )
+        )
+    except ValueError as exc:
+        return error(
+            code="invalid_input",
+            message=str(exc),
+            retryable=False,
+            suggested_action="检查链接、分P或分类字段后重试。",
+        )
+    except (SubtitleExtractionError, FileNotFoundError, RuntimeError, Exception) as exc:  # noqa: BLE001
+        return error(
+            code="save_note_failed",
+            message=str(exc),
+            retryable=True,
+            suggested_action="确认字幕可提取、持久化目录可写，并检查 retrieval 服务状态。",
+        )
+
+    return success(
+        f"Saved Bilibili video note {result.document_id}.",
+        result.model_dump(mode="json"),
+        result.warnings,
+    )
+
+
+async def get_video_note_tool(document_id: str) -> ToolResult:
+    try:
+        result = await get_video_note_response(document_id)
+    except ValueError as exc:
+        return error(
+            code="invalid_input",
+            message=str(exc),
+            retryable=False,
+            suggested_action="检查 document_id 是否为 save_video_note 返回的值。",
+        )
+    except FileNotFoundError as exc:
+        return error(
+            code="note_not_found",
+            message=str(exc),
+            retryable=False,
+            suggested_action="先保存视频笔记，或检查 document_id。",
+        )
+
+    return success(
+        f"Loaded Bilibili video note {result.document_id}.",
+        result.model_dump(mode="json"),
     )

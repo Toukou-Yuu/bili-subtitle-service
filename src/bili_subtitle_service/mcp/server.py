@@ -3,7 +3,11 @@ from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
 from starlette.types import ASGIApp
 
-from bili_subtitle_service.mcp.tools import extract_subtitle_tool
+from bili_subtitle_service.mcp.tools import (
+    extract_subtitle_tool,
+    get_video_note_tool,
+    save_video_note_tool,
+)
 
 
 def create_mcp_server(
@@ -17,7 +21,7 @@ def create_mcp_server(
         instructions=(
             "Agent-facing tools for extracting cleaned Bilibili video subtitles. "
             "Use these tools when the user sends a Bilibili/B23 link and asks Alice "
-            "to understand, summarize, or answer questions about the video."
+            "to understand, summarize, archive, or answer questions about the video."
         ),
         host=host,
         port=port,
@@ -60,3 +64,16 @@ def _register_tools(server: FastMCP) -> None:
             "and cleaned transcript text. Optional page selects a specific 分P."
         ),
     )(extract_subtitle_tool)
+    server.tool(
+        name="save_video_note",
+        description=(
+            "Extract a Bilibili subtitle, save a Markdown note containing transcript, "
+            "AI analysis, categories, tags, profile signals, and metadata, and optionally "
+            "sync it to retrieval. Alice should generate the analysis/categories first and "
+            "pass them to this tool."
+        ),
+    )(save_video_note_tool)
+    server.tool(
+        name="get_video_note",
+        description="Load a previously saved Bilibili Markdown video note by document_id.",
+    )(get_video_note_tool)

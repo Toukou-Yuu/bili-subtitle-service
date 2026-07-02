@@ -3,6 +3,9 @@ from fastapi.testclient import TestClient
 from bili_subtitle_service.app import create_app
 from bili_subtitle_service.models import (
     ExtractResponse,
+    GetVideoNoteResponse,
+    SaveVideoNoteRequest,
+    SaveVideoNoteResponse,
     SubtitleMetadata,
     Transcript,
     VideoMetadata,
@@ -57,3 +60,58 @@ def test_health_endpoint_reports_ok() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"ok": True, "service": "bili-subtitle-service"}
+
+
+def test_post_notes_from_url_returns_markdown_archive_result() -> None:
+    async def fake_save(request: SaveVideoNoteRequest) -> SaveVideoNoteResponse:
+        assert request.url == "https://b23.tv/snbsbAC"
+        assert request.analysis == "AI 讲解"
+        assert request.categories == ["哲学"]
+        return SaveVideoNoteResponse(
+            ok=True,
+            document_id="bili_BV1qiKf65EW9_p1",
+            markdown_path="/data/library/2026/07/bili_BV1qiKf65EW9_p1.md",
+            retrieval_synced=True,
+            retrieval_collection="bili_video_notes",
+            warnings=["使用自动字幕"],
+        )
+
+    app = create_app(save_note_func=fake_save)
+    client = TestClient(app)
+
+    response = client.post(
+        "/notes/from-url",
+        json={
+            "url": "https://b23.tv/snbsbAC",
+            "analysis": "AI 讲解",
+            "categories": ["哲学"],
+            "tags": ["个性化"],
+            "profile_signals": ["关注欲望生产"],
+            "sync_retrieval": True,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["document_id"] == "bili_BV1qiKf65EW9_p1"
+    assert payload["retrieval_synced"] is True
+
+
+def test_get_note_returns_saved_markdown() -> None:
+    async def fake_get(document_id: str) -> GetVideoNoteResponse:
+        assert document_id == "bili_BV1qiKf65EW9_p1"
+        return GetVideoNoteResponse(
+            ok=True,
+            document_id=document_id,
+            markdown_path="/data/library/2026/07/bili_BV1qiKf65EW9_p1.md",
+            markdown="# 标题\n\n## 字幕正文",
+            metadata={"title": "标题"},
+        )
+
+    app = create_app(get_note_func=fake_get)
+    client = TestClient(app)
+
+    response = client.get("/notes/bili_BV1qiKf65EW9_p1")
+
+    assert response.status_code == 200
+    assert response.json()["metadata"]["title"] == "标题"

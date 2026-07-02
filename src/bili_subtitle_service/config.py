@@ -66,9 +66,23 @@ class SummaryConfig(BaseModel):
     reasoning_effort: str | None = None
 
 
+class StorageConfig(BaseModel):
+    enabled: bool = True
+    library_dir: Path = Path("/data/library")
+
+
+class RetrievalConfig(BaseModel):
+    enabled: bool = False
+    base_url: str = "http://retrieval-api:8000/v1"
+    collection: str = "bili_video_notes"
+    sync_by_default: bool = False
+
+
 class AppConfig(BaseModel):
     fetch: FetchConfig = Field(default_factory=FetchConfig)
     summary: SummaryConfig = Field(default_factory=SummaryConfig)
+    storage: StorageConfig = Field(default_factory=StorageConfig)
+    retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
     log_level: str = "INFO"
 
     @classmethod
@@ -91,6 +105,8 @@ class AppConfig(BaseModel):
         update: dict[str, Any] = {}
         fetch_update: dict[str, Any] = {}
         summary_update: dict[str, Any] = {}
+        storage_update: dict[str, Any] = {}
+        retrieval_update: dict[str, Any] = {}
 
         if env.get("BILI_SUBTITLE_TIMEOUT_SECONDS"):
             fetch_update["timeout_seconds"] = float(env["BILI_SUBTITLE_TIMEOUT_SECONDS"])
@@ -107,6 +123,20 @@ class AppConfig(BaseModel):
             summary_update["model"] = env["BILI_SUBTITLE_SUMMARY_MODEL"]
         if env.get("BILI_SUBTITLE_SUMMARY_REASONING_EFFORT"):
             summary_update["reasoning_effort"] = env["BILI_SUBTITLE_SUMMARY_REASONING_EFFORT"]
+        if env.get("BILI_SUBTITLE_STORAGE_ENABLED"):
+            storage_update["enabled"] = _env_bool(env["BILI_SUBTITLE_STORAGE_ENABLED"])
+        if env.get("BILI_SUBTITLE_LIBRARY_DIR"):
+            storage_update["library_dir"] = Path(env["BILI_SUBTITLE_LIBRARY_DIR"])
+        if env.get("BILI_SUBTITLE_RETRIEVAL_ENABLED"):
+            retrieval_update["enabled"] = _env_bool(env["BILI_SUBTITLE_RETRIEVAL_ENABLED"])
+        if env.get("BILI_SUBTITLE_RETRIEVAL_BASE_URL"):
+            retrieval_update["base_url"] = env["BILI_SUBTITLE_RETRIEVAL_BASE_URL"].rstrip("/")
+        if env.get("BILI_SUBTITLE_RETRIEVAL_COLLECTION"):
+            retrieval_update["collection"] = env["BILI_SUBTITLE_RETRIEVAL_COLLECTION"]
+        if env.get("BILI_SUBTITLE_RETRIEVAL_SYNC_BY_DEFAULT"):
+            retrieval_update["sync_by_default"] = _env_bool(
+                env["BILI_SUBTITLE_RETRIEVAL_SYNC_BY_DEFAULT"]
+            )
         if env.get("BILI_SUBTITLE_LOG_LEVEL"):
             update["log_level"] = env["BILI_SUBTITLE_LOG_LEVEL"]
 
@@ -114,6 +144,10 @@ class AppConfig(BaseModel):
             update["fetch"] = self.fetch.model_copy(update=fetch_update)
         if summary_update:
             update["summary"] = self.summary.model_copy(update=summary_update)
+        if storage_update:
+            update["storage"] = self.storage.model_copy(update=storage_update)
+        if retrieval_update:
+            update["retrieval"] = self.retrieval.model_copy(update=retrieval_update)
         config = self.model_copy(update=update) if update else self
         return config.load_secret_files()
 
@@ -126,3 +160,12 @@ class AppConfig(BaseModel):
             )
         cookie = normalize_cookie_header(self.fetch.cookie_file.read_text(encoding="utf-8"))
         return self.model_copy(update={"fetch": self.fetch.model_copy(update={"cookie": cookie})})
+
+
+def _env_bool(value: str) -> bool:
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"invalid boolean environment value: {value}")
