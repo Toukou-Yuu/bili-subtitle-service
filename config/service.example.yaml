@@ -1,0 +1,16 @@
+# Runtime config is injected with BILI_SUBTITLE_CONFIG_FILE=/config/service.yaml.
+# Keep secrets and deployment-specific values out of the image and repository.
+fetch:
+  timeout_seconds: 15
+  user_agent: "Mozilla/5.0 (compatible; bili-subtitle-service/0.1; +https://github.com/Toukou-Yuu/bili-subtitle-service)"
+  proxy: null
+  # Optional. Prefer BILI_SUBTITLE_COOKIE_FILE for real deployments so login cookies
+  # are mounted as secrets and never committed.
+  cookie_file: null
+
+summary:
+  # Used by downstream Alice/Hermes summary flows; extraction itself is deterministic.
+  model: deepseek-v4-flash
+  reasoning_effort: high
+
+log_level: INFO

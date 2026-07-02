@@ -1,0 +1,42 @@
+name: bili-subtitle-service
+
+services:
+  bili-subtitle-service:
+    image: ${BILI_SUBTITLE_IMAGE:-bili-subtitle-service:latest}
+    build: .
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      BILI_SUBTITLE_CONFIG_FILE: /config/service.yaml
+    volumes:
+      - ./config/service.example.yaml:/config/service.yaml:ro
+    ports:
+      - "127.0.0.1:${BILI_SUBTITLE_HOST_PORT:-8310}:8310"
+    healthcheck:
+      test: ["CMD", "bili-subtitle-service", "healthcheck", "--port", "8310"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  bili-subtitle-service-mcp:
+    image: ${BILI_SUBTITLE_IMAGE:-bili-subtitle-service:latest}
+    build: .
+    restart: unless-stopped
+    command: ["bili-subtitle-service", "mcp-http", "--host", "0.0.0.0", "--port", "8311", "--path", "/mcp"]
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      BILI_SUBTITLE_CONFIG_FILE: /config/service.yaml
+    volumes:
+      - ./config/service.example.yaml:/config/service.yaml:ro
+    ports:
+      - "127.0.0.1:${BILI_SUBTITLE_MCP_HOST_PORT:-8311}:8311"
+    depends_on:
+      bili-subtitle-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1', 8311), timeout=3); s.close()"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

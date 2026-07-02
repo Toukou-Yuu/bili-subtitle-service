@@ -1,0 +1,52 @@
+name: Docker Publish
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+
+env:
+  DOCKERHUB_NAMESPACE: ${{ secrets.dockerhubname || secrets.DOCKERHUB_USERNAME }}
+  DOCKERHUB_PASSWORD: ${{ secrets.dockerhubtoken || secrets.DOCKERHUB_TOKEN }}
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set image name
+        run: echo "IMAGE_NAME=${DOCKERHUB_NAMESPACE}/bili-subtitle-service" >> "$GITHUB_ENV"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_NAMESPACE }}
+          password: ${{ env.DOCKERHUB_PASSWORD }}
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: |
+            UV_DEFAULT_INDEX=https://pypi.org/simple
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: Publish release image
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: |
+            UV_DEFAULT_INDEX=https://pypi.org/simple
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
